@@ -27,9 +27,9 @@ async function run() {
     await client.connect();
 
     //Database creation
-    const userCollection = client.db('emergencyBloodDonationDB').collection('user');
-    const donorCollection = client.db('emergencyBloodDonationDB').collection('donor');
-    const patientBloodRequestCollection = client.db('emergencyBloodDonationDB').collection('request_blood');
+    const userCollection = client.db('emergencyBloodDonationDB').collection('user'); //normal user when signUp
+    const donorCollection = client.db('emergencyBloodDonationDB').collection('donor');//coming from donation form
+    const patientBloodRequestCollection = client.db('emergencyBloodDonationDB').collection('request_blood');// coming from request form
     const donationCollection = client.db('emergencyBloodDonationDB').collection('blood_donations'); // Changed collection name
 
     //-=================================
@@ -37,30 +37,48 @@ async function run() {
     //-=================================
     app.post('/user', async (req, res) => {
       const user = req.body;
-      console.log(user);
+     
+      //insert email if doesnt exists
+      const query = {email:user.email};
+      const existingUser = await userCollection.findOne(query)
+      
+      if(existingUser){
+        return res.send({message: 'user already exists', insertedId: null})
+      }
+      
       const result = await userCollection.insertOne(user);
       res.send(result)
     })
 
-
+    //===================================================
+    //Getting All users from Db
+    //===================================================
+    app.get('/user',async(req,res)=>{
+      const email = req.query.email;
+      const query = {email:email}
+      // console.log(query);
+      const result= await userCollection.find(query).toArray();
+      res.send(result)
+    })
 
     // Add this with your other user-related APIs
-    app.get('/user', async (req, res) => {
-      try {
-        const cursor = userCollection.find();
-        const users = await cursor.toArray();
-        res.send(users);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        res.status(500).send({ error: 'Failed to fetch users' });
-      }
-    });
+    // app.get('/user', async (req, res) => {
+    //   try {
+    //     const cursor = userCollection.find();
+    //     const users = await cursor.toArray();
+    //     res.send(users);
+    //   } 
+    //   catch (error) {
+    //     console.error('Error fetching users:', error);
+    //     res.status(500).send({ error: 'Failed to fetch users' });
+    //   }
+    // });
 
 
 
 
     //===========================================================
-    //  Donor Getting from DB and shwoing in Client
+    //  Donor Getting from DB and showing in Client
     //===========================================================  
     app.get('/donor', async (req, res) => {
       const cursor = donorCollection.find();
@@ -113,18 +131,6 @@ async function run() {
       const result = await patientBloodRequestCollection.insertOne(requestblood);
       res.send(result)
     })
-
-
-
-    // app.get('/userprofile/:id',async(req,res)=>{
-    //   const id = req.params.id;
-    //   const query = {_id: new ObjectId(id)}
-    //   const options={
-    //     projection: {email:1,name:1,phone:1},
-    //   };
-    //   const result = await userCollection.findOne(query,options)
-    //   res.send(result)
-    // })
 
 
     // Create/Update user endpoint (combined)
