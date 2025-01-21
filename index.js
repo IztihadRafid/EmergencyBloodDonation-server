@@ -84,6 +84,16 @@ async function run() {
       res.send(result)
     })
 
+    //=============================================================
+    //    DELETE Requests  BY ADMIN FROM CLIENT (ALL requests)
+    //=============================================================
+    app.delete('/requestblood/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await patientBloodRequestCollection .deleteOne(query);
+      res.send(result)
+    })
+
     //===========================================================
     //  Donor Getting from DB and showing in Client
     //===========================================================  
@@ -114,7 +124,15 @@ async function run() {
       res.send(result);
     })
 
-
+    //============================================================
+    // DELETE DONORS BY ADMIN from Client side and delete from DB
+    //============================================================
+    app.delete('/donor/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await donorCollection.deleteOne(query);
+      res.send(result)
+    })
 
 
     //===========================================================
