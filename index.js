@@ -37,15 +37,15 @@ async function run() {
     //-=================================
     app.post('/user', async (req, res) => {
       const user = req.body;
-     
+
       //insert email if doesnt exists
-      const query = {email:user.email};
+      const query = { email: user.email };
       const existingUser = await userCollection.findOne(query)
-      
-      if(existingUser){
-        return res.send({message: 'user already exists', insertedId: null})
+
+      if (existingUser) {
+        return res.send({ message: 'user already exists', insertedId: null })
       }
-      
+
       const result = await userCollection.insertOne(user);
       res.send(result)
     })
@@ -53,11 +53,11 @@ async function run() {
     //===================================================
     //Getting All users from Db
     //===================================================
-    app.get('/user',async(req,res)=>{
+    app.get('/user', async (req, res) => {
       const email = req.query.email;
-      const query = {email:email}
+      const query = { email: email }
       // console.log(query);
-      const result= await userCollection.find(query).toArray();
+      const result = await userCollection.find(query).toArray();
       res.send(result)
     })
 
@@ -74,8 +74,15 @@ async function run() {
     //   }
     // });
 
-
-
+    //=============================================================
+    //    DELETE NORMAL USER BY ADMIN FROM CLIENT (ALL USERs)
+    //=============================================================
+    app.delete('/user/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await userCollection.deleteOne(query);
+      res.send(result)
+    })
 
     //===========================================================
     //  Donor Getting from DB and showing in Client
