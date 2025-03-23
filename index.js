@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken')
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
-
+const nodemailer = require("nodemailer");
 //middleware
 app.use(cors());
 app.use(express.json());
@@ -102,7 +102,7 @@ async function run() {
     //===================================================
     //Getting All users from Db
     //===================================================
-    app.get('/user', verifyToken, verifyAdmin,async (req, res) => {
+    app.get('/user', verifyToken, async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result)
     })
@@ -124,7 +124,7 @@ async function run() {
     //=====================================================
     //      MAKING ADMIN  
     //=====================================================
-    app.patch('/user/admin/:id',verifyToken,verifyAdmin ,async (req, res) => {
+    app.patch('/user/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -153,7 +153,7 @@ async function run() {
     //=============================================================
     //    DELETE NORMAL USER BY ADMIN FROM CLIENT (ALL USERs)
     //=============================================================
-    app.delete('/user/:id', verifyToken,verifyAdmin,async (req, res) => {
+    app.delete('/user/:id', verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await userCollection.deleteOne(query);
@@ -221,6 +221,102 @@ async function run() {
 
     })
 
+
+    //===========================================================
+    // Sending Single patient Detail infromation to another Route
+    //===========================================================
+    app.get('/requestDetails/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await patientBloodRequestCollection.findOne(query);
+
+      res.send(result)
+    })
+
+
+
+
+
+
+    //===================================================================
+    //Getting matched district and bloodGroup request for mailing donor
+    //===================================================================
+    //===================================================================
+    //Getting matched district and bloodGroup request for mailing donor
+    //===================================================================
+    app.post('/match-donors', async (req, res) => {
+      const { bloodGroup, district, name, contactNumber, formattedDate, presentAddress, email } = req.body; // From request blood form
+
+      try {
+        // Fetch the requested blood details (if needed)
+        const requestInfo = await patientBloodRequestCollection.findOne({ bloodGroup, district });
+
+        // Find matching donors based on bloodGroup and district
+        const matchingDonors = await donorCollection.find({
+          bloodGroup: bloodGroup,
+          district: district
+        }).toArray();
+
+        console.log("Matching Donors:", matchingDonors);
+
+        if (matchingDonors.length > 0) {
+
+          // Extracting emails from matched donors
+          const donorEmails = matchingDonors.map(donor => donor.email);
+
+          // Setting up Nodemailer Transporter
+          const transporter = nodemailer.createTransport({
+            service: 'Gmail',
+            auth: {
+              user: process.env.EMAIL_USER,   // Your Gmail email
+              pass: process.env.EMAIL_PASS    // Your Gmail password or App Password
+            }
+          });
+
+          // Email Options (Dynamic)
+          const mailOptions = {
+            from: email, // 👈 Making the requester's email as the sender
+            to: donorEmails.join(','), // Sending to all matched donors
+            subject: "Blood Donation Request",
+            text: `
+        Dear Donor,
+        We have an Emergency blood request for Blood Group: ${bloodGroup} in ${district}.
+        Message from requester: Name:    ${name} 
+                                contact: ${contactNumber}
+                                Email:   ${email}
+
+      Please contact us if you are available to donate.
+      Thank you for your kindness and support!
+
+      Sincerely, Emergency Blood Donation Team 
+      Our website: emergencyblooddonation-d3909.firebaseapp.com`
+      
+      };
+
+          // Send Email to All Matching Donors
+          transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+              console.error('Error sending email:', error);
+              return res.status(500).json({ error: 'Error sending emails to donors.' });
+            }
+
+            res.status(200).json({
+              message: 'Emails sent successfully to matching donors.',
+              requestInfo,
+              donors: matchingDonors
+            });
+          });
+        } else {
+          return res.status(200).json({
+            message: "No matching donors found.",
+            requestInfo
+          });
+        }
+      } catch (error) {
+        console.error("Error finding donors:", error);
+        return res.status(500).json({ error: "Error finding donors" });
+      }
+    });
 
 
 
