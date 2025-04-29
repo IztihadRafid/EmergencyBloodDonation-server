@@ -32,6 +32,7 @@ async function run() {
     const donorCollection = client.db('emergencyBloodDonationDB').collection('donor');//coming from donation form
     const patientBloodRequestCollection = client.db('emergencyBloodDonationDB').collection('request_blood');// coming from request form
     const donationCollection = client.db('emergencyBloodDonationDB').collection('blood_donations'); // Changed collection name
+    const messageCollection = client.db('emergencyBloodDonationDB').collection('allmessage');
 
     //=============================================================
     // JWT REALTED API
@@ -290,8 +291,8 @@ async function run() {
 
       Sincerely, Emergency Blood Donation Team 
       Our website: emergencyblooddonation-d3909.firebaseapp.com`
-      
-      };
+
+          };
 
           // Send Email to All Matching Donors
           transporter.sendMail(mailOptions, (error, info) => {
@@ -409,7 +410,23 @@ async function run() {
     });
 
 
+    //===========================================================
+    //  messsage sent from client
+    //===========================================================
+    app.post('/allmessage', async (req, res) => {
+      const message = req.body;
+      const result = await messageCollection.insertOne(message);
+      res.send(result);
+    })
+   //===========================================================
+    // GET ALL MESSAGE
+    //===========================================================  
+    app.get('/allmessage', async (req, res) => {
+      const cursor = messageCollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
 
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
